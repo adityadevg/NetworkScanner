@@ -6,5 +6,5 @@ python -m pip install -r requirements.txt
 ```
 3. Run main file
 ```
-python -m main
+python -m neighbourhood
 ```
