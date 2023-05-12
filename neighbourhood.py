@@ -1,6 +1,6 @@
 import socket
 import subprocess
-from concurrent.futures import ThreadPoolExecutor, as_completed
+from concurrent.futures import ThreadPoolExecutor
 
 import netifaces
 from tqdm import tqdm
@@ -83,19 +83,17 @@ for interface, ip in local_ips:
     subnet_ips = get_local_subnet_ip_addresses(subnet)
 
     progress_bar = tqdm(
-        subnet_ips, desc=f"Pinging IPs in {interface} subnet", unit="IP"
+        total=len(subnet_ips), desc=f"Pinging IPs in {interface} subnet", unit="IP"
     )
+
+    def update_progress(ip, future):
+        progress_bar.set_postfix({"IP": ip, "Reachable": future.result()})
+        progress_bar.update()
 
     with ThreadPoolExecutor() as executor:
         futures = [executor.submit(ping_ip_address, ip) for ip in subnet_ips]
 
-        for future in as_completed(futures):
-            ip = future.result()
-            hostname = get_hostname(ip)
-            if reachable:
-                progress_bar.set_postfix(
-                    {"IP": ip, "Hostname": hostname, "Reachable": reachable}
-                )
-            progress_bar.update()
+        for ip, future in zip(subnet_ips, futures):
+            future.add_done_callback(lambda future, ip=ip: update_progress(ip, future))
 
     progress_bar.close()
