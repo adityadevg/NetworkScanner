@@ -1,6 +1,8 @@
 import socket
-import netifaces
 import subprocess
+
+import netifaces
+from tqdm import tqdm
 
 
 def ping_ip_address(ip_address):
@@ -79,10 +81,17 @@ for interface, ip in local_ips:
 
     subnet_ips = get_local_subnet_ip_addresses(subnet)
 
-    for ip in subnet_ips:
+    progress_bar = tqdm(
+        subnet_ips, desc=f"Pinging IPs in {interface} subnet", unit="IP"
+    )
+
+    for ip in progress_bar:
         reachable = ping_ip_address(ip)
         hostname = get_hostname(ip)
         if reachable:
-            print(
-                f"Interface: {interface} - IP: {ip} - Hostname: {hostname} - Reachable: {reachable}"
+            progress_bar.set_postfix(
+                {"IP": ip, "Hostname": hostname, "Reachable": reachable}
             )
+        progress_bar.update()
+
+    progress_bar.close()
